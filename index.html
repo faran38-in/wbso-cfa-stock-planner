@@ -11,7 +11,7 @@
     .badge-surplus { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
     .badge-partial { background-color: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
     .badge-shortfall { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-    .table-container { max-height: 72vh; overflow-y: auto; }
+    .table-container { max-height: 75vh; overflow-y: auto; }
     thead th { position: sticky; top: 0; z-index: 20; background-color: #0f172a; color: #f8fafc; }
   </style>
 </head>
@@ -78,34 +78,6 @@
       </div>
     </section>
 
-    <!-- Ultra-Compact KPI Row -->
-    <section class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-      <div class="bg-white p-2.5 rounded-lg shadow-sm border border-slate-200">
-        <div class="text-[10px] uppercase text-slate-400 font-semibold">Total Req Lines</div>
-        <div id="kpiTotalLines" class="text-lg font-bold text-slate-800">0</div>
-      </div>
-      <div class="bg-white p-2.5 rounded-lg shadow-sm border border-slate-200">
-        <div class="text-[10px] uppercase text-slate-400 font-semibold">Total Req Qty</div>
-        <div id="kpiTotalReq" class="text-lg font-bold text-slate-800">0</div>
-      </div>
-      <div class="bg-white p-2.5 rounded-lg shadow-sm border border-emerald-200 bg-emerald-50/30">
-        <div class="text-[10px] uppercase text-emerald-700 font-semibold">Ready at CFA</div>
-        <div id="kpiDirectReady" class="text-lg font-bold text-emerald-700">0</div>
-      </div>
-      <div class="bg-white p-2.5 rounded-lg shadow-sm border border-amber-200 bg-amber-50/30">
-        <div class="text-[10px] uppercase text-amber-800 font-semibold">WBSO Sister Support</div>
-        <div id="kpiSisterSupport" class="text-lg font-bold text-amber-700">0</div>
-      </div>
-      <div class="bg-white p-2.5 rounded-lg shadow-sm border border-rose-200 bg-rose-50/30">
-        <div class="text-[10px] uppercase text-rose-700 font-semibold">Net External Deficit</div>
-        <div id="kpiNetDeficit" class="text-lg font-bold text-rose-700">0</div>
-      </div>
-      <div class="bg-white p-2.5 rounded-lg shadow-sm border border-indigo-200 bg-indigo-50/30">
-        <div class="text-[10px] uppercase text-indigo-700 font-semibold">All-India Plant Found</div>
-        <div id="kpiAllIndiaFound" class="text-lg font-bold text-indigo-700">0</div>
-      </div>
-    </section>
-
     <!-- Filters & Search Toolbar -->
     <section class="bg-white p-2.5 rounded-lg shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-2">
       <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -119,11 +91,10 @@
         </select>
 
         <select id="statusFilter" onchange="renderDashboard()" class="text-xs border border-slate-300 rounded-md px-2 py-1.5 bg-white font-medium">
-          <option value="ALL">All Fulfilment Statuses</option>
-          <option value="SHORTFALL_TARGET">Any Shortfall at Target CFA</option>
-          <option value="NEED_EXTERNAL">Needs All-India External STO</option>
-          <option value="WBSO_TRANSFER">Arrangeable within WBSO</option>
-          <option value="READY">100% Ready at Target CFA</option>
+          <option value="ALL">All Statuses</option>
+          <option value="Available at target CFA">Available at target CFA</option>
+          <option value="Available at CIP Kolkata">Available at CIP Kolkata</option>
+          <option value="Not available">Not available</option>
         </select>
       </div>
 
@@ -325,7 +296,6 @@
       reader.readAsArrayBuffer(file);
     });
 
-    // Ingests ALL plants from MB52 Excel dump
     document.getElementById("allIndiaFileInput").addEventListener("change", function(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -369,7 +339,6 @@
 
         const finalAIMap = {};
         Object.keys(newAIMap).forEach(code => {
-          // Allow all supplying plants found in MB52 dump to appear in dropdowns
           finalAIMap[code] = Object.values(newAIMap[code])
             .sort((a, b) => b.unrestricted - a.unrestricted);
         });
@@ -410,31 +379,25 @@
         };
 
         const targetAvail = effStock(req.plant);
-        const sisterCFAs = ["5610", "5608", "5611", "5770"].filter(p => p !== req.plant);
-        const sisterAvailTotal = sisterCFAs.reduce((acc, p) => acc + effStock(p), 0);
-
+        const cipAvail = effStock("5770");
         const targetShortfall = Math.max(0, req.reqQty - targetAvail);
-        const netExternalDeficit = Math.max(0, targetShortfall - sisterAvailTotal);
 
-        let sisterSuggestions = [];
-        if (targetShortfall > 0 && sisterAvailTotal > 0) {
-          sisterCFAs.forEach(p => {
-            const avail = effStock(p);
-            if (avail > 0) sisterSuggestions.push(`${PLANT_LABELS[p].split(" ")[1]}: ${avail}`);
-          });
-        }
+        // Determine Fulfilment Status based on user's exact requested categories
+        let statusKey = "Not available";
+        let statusLabel = "Not available";
+        let badgeClass = "badge-shortfall";
 
-        let statusKey = "READY";
-        let statusLabel = "Ready at Target CFA";
-        let badgeClass = "badge-surplus";
-
-        if (targetShortfall > 0 && netExternalDeficit === 0) {
-          statusKey = "WBSO_TRANSFER";
-          statusLabel = `WBSO Transfer (${sisterSuggestions.join(", ")})`;
+        if (targetAvail >= req.reqQty) {
+          statusKey = "Available at target CFA";
+          statusLabel = "Available at target CFA";
+          badgeClass = "badge-surplus";
+        } else if (cipAvail > 0) {
+          statusKey = "Available at CIP Kolkata";
+          statusLabel = `Available at CIP Kolkata (${cipAvail} qty)`;
           badgeClass = "badge-partial";
-        } else if (netExternalDeficit > 0) {
-          statusKey = "NEED_EXTERNAL";
-          statusLabel = `Need STO: ${netExternalDeficit} Qty`;
+        } else {
+          statusKey = "Not available";
+          statusLabel = targetShortfall > 0 ? `Not available (Shortfall: ${targetShortfall})` : "Not available";
           badgeClass = "badge-shortfall";
         }
 
@@ -443,9 +406,8 @@
           ...req,
           stockEntry,
           targetAvail,
-          sisterAvailTotal,
+          cipAvail,
           targetShortfall,
-          netExternalDeficit,
           statusKey,
           statusLabel,
           badgeClass,
@@ -471,30 +433,15 @@
       const statusFilter = document.getElementById("statusFilter").value;
 
       const plantScoped = rows.filter(r => plantFilter === "ALL" || r.plant === plantFilter);
-      const uniqueCodes = new Set(plantScoped.map(r => r.code)).size;
-      const totalReq = plantScoped.reduce((s, r) => s + r.reqQty, 0);
-      const readyRows = plantScoped.filter(r => r.statusKey === "READY");
-      const wbsoRows = plantScoped.filter(r => r.statusKey === "WBSO_TRANSFER");
-      const deficitRows = plantScoped.filter(r => r.statusKey === "NEED_EXTERNAL");
-      const totalDeficitQty = deficitRows.reduce((s, r) => s + r.netExternalDeficit, 0);
-      const aiMatchedRows = deficitRows.filter(r => r.aiPlants.length > 0);
-
-      document.getElementById("kpiTotalLines").textContent = plantScoped.length.toLocaleString();
-      document.getElementById("kpiTotalReq").textContent = totalReq.toLocaleString();
-      document.getElementById("kpiDirectReady").textContent = readyRows.length.toLocaleString();
-      document.getElementById("kpiSisterSupport").textContent = wbsoRows.length.toLocaleString();
-      document.getElementById("kpiNetDeficit").textContent = totalDeficitQty.toLocaleString();
-      document.getElementById("kpiAllIndiaFound").textContent = aiMatchedRows.length.toLocaleString();
 
       const filtered = plantScoped.filter(r => {
         const aiText = r.aiPlants.map(p => `${p.plant} ${p.name}`).join(" ").toLowerCase();
         if (search && !r.code.toLowerCase().includes(search) && !r.grade.toLowerCase().includes(search) && !aiText.includes(search)) {
           return false;
         }
-        if (statusFilter === "SHORTFALL_TARGET" && r.targetShortfall === 0) return false;
-        if (statusFilter === "NEED_EXTERNAL" && r.statusKey !== "NEED_EXTERNAL") return false;
-        if (statusFilter === "WBSO_TRANSFER" && r.statusKey !== "WBSO_TRANSFER") return false;
-        if (statusFilter === "READY" && r.statusKey !== "READY") return false;
+        if (statusFilter !== "ALL" && r.statusKey !== statusFilter) {
+          return false;
+        }
         return true;
       });
 
@@ -519,8 +466,6 @@
               ${optionsHtml}
             </select>
           `;
-        } else if (r.statusKey === "READY") {
-          aiHtml = `<span class="text-emerald-600 font-medium">✔ Available at Target CFA</span>`;
         }
 
         return `
@@ -550,7 +495,7 @@
       const headers = [
         "Requiring Plant", "Material Code", "Grade Name", "Total Required Qty",
         "Mourigram (5610) Avail", "Raninagar (5608) Avail", "Rajbandh (5611) Avail", "CIP Kolkata (5770) Avail",
-        "Target CFA Shortfall", "Net External STO Deficit", "Fulfilment Status", "Selected All-India Supplying Plant"
+        "Target CFA Shortfall", "Fulfilment Status", "Selected All-India Supplying Plant"
       ];
       const csvLines = [headers.join(",")];
       rows.forEach(r => {
@@ -565,7 +510,6 @@
           r.stockEntry["5611"]?.a || 0,
           r.stockEntry["5770"]?.a || 0,
           r.targetShortfall,
-          r.netExternalDeficit,
           `"${r.statusLabel}"`,
           `"${chosenPlant}"`
         ].join(","));
