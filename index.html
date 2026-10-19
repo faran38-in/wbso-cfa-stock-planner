@@ -25,7 +25,7 @@
         <div>
           <h1 class="text-lg font-bold tracking-tight">CFA Stock Arrangement &amp; All-India Plant Sourcing</h1>
           <p class="text-[11px] text-slate-400">
-            Connected to Google Sheet: <code class="text-orange-300">SSR STOCK REQUIREMENT</code> (<code class="text-slate-300">Req at CFA Master</code> + <code class="text-slate-300">Stock</code>)
+            WBSO Plant Mapping: Mourigram (<code class="text-orange-300">5610</code>), Raninagar (<code class="text-orange-300">5608</code>), Rajbandh (<code class="text-orange-300">5611</code>), CIP Kolkata (<code class="text-orange-300">5770</code>)
           </p>
         </div>
       </div>
@@ -45,31 +45,28 @@
 
     <!-- Data Sources & Controls -->
     <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <!-- Box 1: Live G-Sheet / File Override -->
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div class="flex items-center justify-between mb-1.5">
           <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600">1. WBSO Master &amp; CFA Stock</h2>
           <span id="wbStatus" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">Ready to Sync / Upload</span>
         </div>
         <p class="text-[11px] text-slate-500 mb-2.5">
-          Click <strong>Sync Live Google Sheet</strong> (if link sharing is set to <em>Anyone with the link can view</em>) or upload your <code class="font-mono">.xlsx</code> file directly:
+          Click <strong>Sync Live Google Sheet</strong> or upload your <code class="font-mono">.xlsx</code> file directly:
         </p>
         <input type="file" id="ssrFileInput" accept=".xlsx,.xls,.csv" class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-white hover:file:bg-slate-700 cursor-pointer" />
       </div>
 
-      <!-- Box 2: All-India Stock Upload -->
       <div class="bg-white p-4 rounded-xl shadow-sm border-2 border-orange-200 bg-orange-50/20">
         <div class="flex items-center justify-between mb-1.5">
           <h2 class="text-xs font-bold uppercase tracking-wider text-orange-800">2. Upload All-India Plant Stock (MB52)</h2>
           <span id="aiStatus" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">Demo Plants Active</span>
         </div>
         <p class="text-[11px] text-slate-600 mb-2.5">
-          Upload your All-India SAP MB52 dump (<code class="font-mono">Material, Plant, Name 1, Unrestricted, Transit</code>) to match external supplying plants:
+          Upload your All-India SAP MB52 dump (<code class="font-mono">Material, Plant, Name 1, Unrestricted, Transit</code>):
         </p>
         <input type="file" id="allIndiaFileInput" accept=".xlsx,.xls,.csv" class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-500 cursor-pointer" />
       </div>
 
-      <!-- Box 3: Planning Rules -->
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
         <div>
           <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">3. Allocation Logic &amp; Options</h2>
@@ -83,9 +80,9 @@
           </label>
         </div>
         <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex flex-wrap gap-x-3 gap-y-1">
-          <span><strong>5608:</strong> Mourigram</span>
-          <span><strong>5610:</strong> Rajbandh</span>
-          <span><strong>5609:</strong> Raninagar</span>
+          <span><strong>5610:</strong> Mourigram</span>
+          <span><strong>5608:</strong> Raninagar</span>
+          <span><strong>5611:</strong> Rajbandh</span>
           <span><strong>5770:</strong> CIP Kolkata</span>
         </div>
       </div>
@@ -131,10 +128,10 @@
         <input type="text" id="searchInput" oninput="renderDashboard()" placeholder="🔍 Search Code, Grade, or Supplying Plant..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800 w-64" />
 
         <select id="plantFilter" onchange="renderDashboard()" class="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white font-medium">
-          <option value="ALL">All Requiring CFAs (5608 / 5610 / 5609)</option>
-          <option value="5608">Plant 5608 — CFA Mourigram</option>
-          <option value="5610">Plant 5610 — CFA Rajbandh</option>
-          <option value="5609">Plant 5609 — CFA Raninagar</option>
+          <option value="ALL">All Requiring CFAs (5610 / 5608 / 5611)</option>
+          <option value="5610">Plant 5610 — CFA Mourigram</option>
+          <option value="5608">Plant 5608 — CFA Raninagar</option>
+          <option value="5611">Plant 5611 — CFA Rajbandh</option>
         </select>
 
         <select id="statusFilter" onchange="renderDashboard()" class="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white font-medium">
@@ -161,9 +158,9 @@
               <th class="py-3 px-3">Code</th>
               <th class="py-3 px-3">Grade Name</th>
               <th class="py-3 px-3 text-right bg-slate-800">Req Qty</th>
-              <th class="py-3 px-3 text-center">Mourigram<br><span class="text-[9px] font-normal text-slate-300">(5608)</span></th>
-              <th class="py-3 px-3 text-center">Rajbandh<br><span class="text-[9px] font-normal text-slate-300">(5610)</span></th>
-              <th class="py-3 px-3 text-center">Raninagar<br><span class="text-[9px] font-normal text-slate-300">(5609)</span></th>
+              <th class="py-3 px-3 text-center">Mourigram<br><span class="text-[9px] font-normal text-slate-300">(5610)</span></th>
+              <th class="py-3 px-3 text-center">Raninagar<br><span class="text-[9px] font-normal text-slate-300">(5608)</span></th>
+              <th class="py-3 px-3 text-center">Rajbandh<br><span class="text-[9px] font-normal text-slate-300">(5611)</span></th>
               <th class="py-3 px-3 text-center">CIP Kolkata<br><span class="text-[9px] font-normal text-slate-300">(5770)</span></th>
               <th class="py-3 px-3 text-right">Target Shortfall</th>
               <th class="py-3 px-3">Fulfilment Status</th>
@@ -179,45 +176,44 @@
   <script>
     const SHEET_ID = "1KsqNGhafYQUjwMpXAuaVgYIyVaQ7P2kWtv1R6VyFkew";
 
-    // Pre-loaded fallback data from your sheet
     let rawReqData = [
-      { plant: "5608", code: "2502265", grade: "SERVO GEAR HP 90- 20 L", reqQty: 125 },
-      { plant: "5608", code: "2503234", grade: "SERVO GEAR HP 140- 4x5L - HDPE", reqQty: 140 },
-      { plant: "5608", code: "2503265", grade: "SERVO GEAR HP 140- 20 L", reqQty: 140 },
-      { plant: "5608", code: "2941184", grade: "SERVO OBM 2T OIL- 20 X 1 L", reqQty: 200 },
-      { plant: "5608", code: "3614265", grade: "SERVOMESH SP 320- 20 L", reqQty: 150 },
-      { plant: "5608", code: "7403265", grade: "SERVOELECTRA- 20 L", reqQty: 200 },
-      { plant: "5608", code: "7420401", grade: "HYUNDAI SERVO PETROL ENGINE OIL SN PLUS- 210 L BRL", reqQty: 10 },
-      { plant: "5608", code: "228740152", grade: "SERVO MOTOCARE 4T- 20 X 0.9L", reqQty: 1025 },
-      { plant: "5608", code: "228740184", grade: "SERVO MOTOCARE 4T- 20 X 1 L", reqQty: 550 },
-      { plant: "5608", code: "237250213", grade: "SERVO KISANPOWER SPSO- 4x3.5L HDPE", reqQty: 600 },
-      { plant: "5608", code: "273640184", grade: "SERVO FLEET 15W-40- 20 X 1 L", reqQty: 450 },
-      { plant: "5608", code: "429000174", grade: "SERVO ZOOM 2T SUPREME- 40X1/2L", reqQty: 600 },
-      { plant: "5610", code: "2502234", grade: "SERVO GEAR HP 90 - 4x5L - HDPE", reqQty: 30 },
-      { plant: "5610", code: "2502234", grade: "SERVO GEAR HP 90- 4x5L - HDPE", reqQty: 60 },
-      { plant: "5610", code: "2503234", grade: "SERVO GEAR HP 140- 4x5L - HDPE", reqQty: 27 },
-      { plant: "5610", code: "2503265", grade: "SERVO GEAR HP 140- 20 L", reqQty: 20 },
-      { plant: "5610", code: "3614265", grade: "SERVOMESH SP 320 - 20l BUC", reqQty: 40 },
-      { plant: "5610", code: "3614265", grade: "SERVOMESH SP 320- 20 L", reqQty: 60 },
-      { plant: "5610", code: "3617265", grade: "SERVOMESH SP 220- 20 L", reqQty: 50 },
-      { plant: "5610", code: "7079401", grade: "ECSTAR PETROL 0W-16 FE- 210 L BRL", reqQty: 20 },
-      { plant: "5610", code: "7209213", grade: "HY SERVO SYNTH 0W-30 SP/C3-4 X 3.5 L", reqQty: 30 },
-      { plant: "5610", code: "7209213", grade: "HYUNDAI SERVO SYNTH 0W-30 API SP/ ACEA C3- 4x3.5L HDPE", reqQty: 150 },
-      { plant: "5610", code: "7420213", grade: "HYUNDAI SERVO PETROL ENGINE OIL SN PLUS- 4x3.5L HDPE", reqQty: 200 },
-      { plant: "5610", code: "7420401", grade: "HY SERVO PETROL EO SN PLUS-210 L", reqQty: 5 },
-      { plant: "5610", code: "7420401", grade: "HYUNDAI SERVO PETROL ENGINE OIL SN PLUS- 210 L BRL", reqQty: 25 }
+      { plant: "5610", code: "2502265", grade: "SERVO GEAR HP 90- 20 L", reqQty: 125 },
+      { plant: "5610", code: "2503234", grade: "SERVO GEAR HP 140- 4x5L - HDPE", reqQty: 140 },
+      { plant: "5610", code: "2503265", grade: "SERVO GEAR HP 140- 20 L", reqQty: 140 },
+      { plant: "5610", code: "2941184", grade: "SERVO OBM 2T OIL- 20 X 1 L", reqQty: 200 },
+      { plant: "5610", code: "3614265", grade: "SERVOMESH SP 320- 20 L", reqQty: 150 },
+      { plant: "5610", code: "7403265", grade: "SERVOELECTRA- 20 L", reqQty: 200 },
+      { plant: "5610", code: "7420401", grade: "HYUNDAI SERVO PETROL ENGINE OIL SN PLUS- 210 L BRL", reqQty: 10 },
+      { plant: "5610", code: "228740152", grade: "SERVO MOTOCARE 4T- 20 X 0.9L", reqQty: 1025 },
+      { plant: "5610", code: "228740184", grade: "SERVO MOTOCARE 4T- 20 X 1 L", reqQty: 550 },
+      { plant: "5610", code: "237250213", grade: "SERVO KISANPOWER SPSO- 4x3.5L HDPE", reqQty: 600 },
+      { plant: "5610", code: "273640184", grade: "SERVO FLEET 15W-40- 20 X 1 L", reqQty: 450 },
+      { plant: "5610", code: "429000174", grade: "SERVO ZOOM 2T SUPREME- 40X1/2L", reqQty: 600 },
+      { plant: "5611", code: "2502234", grade: "SERVO GEAR HP 90 - 4x5L - HDPE", reqQty: 30 },
+      { plant: "5611", code: "2502234", grade: "SERVO GEAR HP 90- 4x5L - HDPE", reqQty: 60 },
+      { plant: "5611", code: "2503234", grade: "SERVO GEAR HP 140- 4x5L - HDPE", reqQty: 27 },
+      { plant: "5611", code: "2503265", grade: "SERVO GEAR HP 140- 20 L", reqQty: 20 },
+      { plant: "5611", code: "3614265", grade: "SERVOMESH SP 320 - 20l BUC", reqQty: 40 },
+      { plant: "5611", code: "3614265", grade: "SERVOMESH SP 320- 20 L", reqQty: 60 },
+      { plant: "5611", code: "3617265", grade: "SERVOMESH SP 220- 20 L", reqQty: 50 },
+      { plant: "5611", code: "7079401", grade: "ECSTAR PETROL 0W-16 FE- 210 L BRL", reqQty: 20 },
+      { plant: "5611", code: "7209213", grade: "HY SERVO SYNTH 0W-30 SP/C3-4 X 3.5 L", reqQty: 30 },
+      { plant: "5611", code: "7209213", grade: "HYUNDAI SERVO SYNTH 0W-30 API SP/ ACEA C3- 4x3.5L HDPE", reqQty: 150 },
+      { plant: "5611", code: "7420213", grade: "HYUNDAI SERVO PETROL ENGINE OIL SN PLUS- 4x3.5L HDPE", reqQty: 200 },
+      { plant: "5611", code: "7420401", grade: "HY SERVO PETROL EO SN PLUS-210 L", reqQty: 5 },
+      { plant: "5611", code: "7420401", grade: "HYUNDAI SERVO PETROL ENGINE OIL SN PLUS- 210 L BRL", reqQty: 25 }
     ];
 
     let wbsoStockMap = {
-      "2502265":   { "5770": {a: 354, t: 189}, "5608": {a: 0, t: 0},   "5610": {a: 0, t: 0},   "5609": {a: 0, t: 0} },
-      "2503234":   { "5770": {a: 0, t: 0},     "5608": {a: 21, t: 0},  "5610": {a: 5, t: 0},   "5609": {a: 0, t: 0} },
-      "2503265":   { "5770": {a: 0, t: 80},    "5608": {a: 37, t: 0},  "5610": {a: 59, t: 0},  "5609": {a: 0, t: 0} },
-      "7420401":   { "5770": {a: 0, t: 35},    "5608": {a: 0, t: 0},   "5610": {a: 1, t: 0},   "5609": {a: 4, t: 0} },
-      "237250213": { "5770": {a: 154, t: 1315},"5608": {a: 437, t: 0}, "5610": {a: 0, t: 0},   "5609": {a: 0, t: 0} },
-      "273640184": { "5770": {a: 32, t: 776},  "5608": {a: 2, t: 100}, "5610": {a: 0, t: 0},   "5609": {a: 0, t: 0} },
-      "2502234":   { "5770": {a: 1, t: 0},     "5608": {a: 661, t: 0}, "5610": {a: 28, t: 0},  "5609": {a: 11, t: 0} },
-      "3617265":   { "5770": {a: 302, t: 0},   "5608": {a: 3, t: 0},   "5610": {a: 25, t: 0},  "5609": {a: 122, t: 0} },
-      "7079401":   { "5770": {a: 53, t: 0},    "5608": {a: 0, t: 0},   "5610": {a: 0, t: 0},   "5609": {a: 0, t: 0} }
+      "2502265":   { "5770": {a: 354, t: 189}, "5610": {a: 0, t: 0},   "5608": {a: 0, t: 0},   "5611": {a: 0, t: 0} },
+      "2503234":   { "5770": {a: 0, t: 0},     "5610": {a: 21, t: 0},  "5608": {a: 0, t: 0},   "5611": {a: 5, t: 0} },
+      "2503265":   { "5770": {a: 0, t: 80},    "5610": {a: 37, t: 0},  "5608": {a: 0, t: 0},   "5611": {a: 59, t: 0} },
+      "7420401":   { "5770": {a: 0, t: 35},    "5610": {a: 0, t: 0},   "5608": {a: 4, t: 0},   "5611": {a: 1, t: 0} },
+      "237250213": { "5770": {a: 154, t: 1315},"5610": {a: 437, t: 0}, "5608": {a: 0, t: 0},   "5611": {a: 0, t: 0} },
+      "273640184": { "5770": {a: 32, t: 776},  "5610": {a: 2, t: 100}, "5608": {a: 0, t: 0},   "5611": {a: 0, t: 0} },
+      "2502234":   { "5770": {a: 1, t: 0},     "5610": {a: 661, t: 0}, "5608": {a: 11, t: 0},  "5611": {a: 28, t: 0} },
+      "3617265":   { "5770": {a: 302, t: 0},   "5610": {a: 3, t: 0},   "5608": {a: 122, t: 0}, "5611": {a: 25, t: 0} },
+      "7079401":   { "5770": {a: 53, t: 0},    "5610": {a: 0, t: 0},   "5608": {a: 0, t: 0},   "5611": {a: 0, t: 0} }
     };
 
     let allIndiaStockMap = {
@@ -232,13 +228,12 @@
       "7420213":   [{ plant: "1205", name: "Haldia LBP", unrestricted: 410, transit: 0 }]
     };
 
-    // Stores user-selected supplying plant per row key
     let selectedPlantChoice = {};
 
     const PLANT_LABELS = {
-      "5608": "CFA Mourigram (5608)",
-      "5610": "CFA Rajbandh (5610)",
-      "5609": "CFA Raninagar (5609)",
+      "5610": "CFA Mourigram (5610)",
+      "5608": "CFA Raninagar (5608)",
+      "5611": "CFA Rajbandh (5611)",
       "5770": "CIP Kolkata (5770)"
     };
 
@@ -257,14 +252,13 @@
     function resolveWBSOPlant(plantVal, nameVal) {
       const p = cleanCode(plantVal);
       const n = String(nameVal || "").toUpperCase();
-      if (p === "5608" || n.includes("MOURIGRAM")) return "5608";
-      if (p === "5610" || n.includes("RAJBANDH")) return "5610";
-      if (p === "5609" || n.includes("RANINAGAR")) return "5609";
+      if (p === "5610" || n.includes("MOURIGRAM")) return "5610";
+      if (p === "5608" || n.includes("RANINAGAR")) return "5608";
+      if (p === "5611" || n.includes("RAJBANDH")) return "5611";
       if (p === "5770" || n.includes("CIP KOLKATA") || n.includes("KOLKATA")) return "5770";
       return p || "OTHER";
     }
 
-    // Live Sync directly from Google Sheet CSV endpoints
     async function syncLiveGoogleSheet() {
       const statusEl = document.getElementById("wbStatus");
       statusEl.textContent = "Syncing from Google Sheet...";
@@ -275,7 +269,7 @@
         const stockUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("Stock")}`;
 
         const [reqRes, stockRes] = await Promise.all([fetch(reqUrl), fetch(stockUrl)]);
-        if (!reqRes.ok || !stockRes.ok) throw new Error("Ensure sheet sharing is 'Anyone with link can view'");
+        if (!reqRes.ok || !stockRes.ok) throw new Error("Ensure sheet sharing is 'Anyone with the link can view'");
 
         const reqCsv = await reqRes.text();
         const stockCsv = await stockRes.text();
@@ -288,7 +282,7 @@
           const code = cleanCode(r["Code"] || r["CODE"]);
           const grade = String(r["Grade Name"] || r["Grade"] || "").trim();
           const qty = parseNum(r["Total Required Qty"] || r["Required Qty"]);
-          if (code && qty > 0) parsedReqs.push({ plant: plant || "5608", code, grade, reqQty: qty });
+          if (code && qty > 0) parsedReqs.push({ plant: plant || "5610", code, grade, reqQty: qty });
         });
 
         const stockWb = XLSX.read(stockCsv, { type: "string" });
@@ -300,7 +294,7 @@
           const pKey = resolveWBSOPlant(r["Plant"], r["Name 1"]);
           const unres = parseNum(r["Unrestricted"]);
           const trans = parseNum(r["Transit and Transfer"]);
-          if (!newStockMap[code]) newStockMap[code] = { "5608": {a:0,t:0}, "5610": {a:0,t:0}, "5609": {a:0,t:0}, "5770": {a:0,t:0} };
+          if (!newStockMap[code]) newStockMap[code] = { "5610": {a:0,t:0}, "5608": {a:0,t:0}, "5611": {a:0,t:0}, "5770": {a:0,t:0} };
           if (!newStockMap[code][pKey]) newStockMap[code][pKey] = { a: 0, t: 0 };
           newStockMap[code][pKey].a += unres;
           newStockMap[code][pKey].t += trans;
@@ -319,7 +313,6 @@
       }
     }
 
-    // Manual Upload 1: SSR Workbook
     document.getElementById("ssrFileInput").addEventListener("change", function(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -334,7 +327,7 @@
           const code = cleanCode(r["Code"] || r["CODE"] || r["Material"]);
           const grade = String(r["Grade Name"] || r["Grade"] || r["Material Description"] || "").trim();
           const qty = parseNum(r["Total Required Qty"] || r["Required Qty"] || r["Qty in No"] || r["Qty"]);
-          if (code && qty > 0) parsedReqs.push({ plant: plant || "5608", code, grade, reqQty: qty });
+          if (code && qty > 0) parsedReqs.push({ plant: plant || "5610", code, grade, reqQty: qty });
         });
         if (parsedReqs.length > 0) rawReqData = parsedReqs;
 
@@ -348,7 +341,7 @@
             const plantKey = resolveWBSOPlant(r["Plant"], r["Name 1"]);
             const unres = parseNum(r["Unrestricted"]);
             const trans = parseNum(r["Transit and Transfer"]);
-            if (!newStockMap[code]) newStockMap[code] = { "5608": {a:0,t:0}, "5610": {a:0,t:0}, "5609": {a:0,t:0}, "5770": {a:0,t:0} };
+            if (!newStockMap[code]) newStockMap[code] = { "5610": {a:0,t:0}, "5608": {a:0,t:0}, "5611": {a:0,t:0}, "5770": {a:0,t:0} };
             if (!newStockMap[code][plantKey]) newStockMap[code][plantKey] = { a: 0, t: 0 };
             newStockMap[code][plantKey].a += unres;
             newStockMap[code][plantKey].t += trans;
@@ -363,7 +356,6 @@
       reader.readAsArrayBuffer(file);
     });
 
-    // Manual Upload 2: All India Stock MB52
     document.getElementById("allIndiaFileInput").addEventListener("change", function(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -395,7 +387,7 @@
         const finalAIMap = {};
         Object.keys(newAIMap).forEach(code => {
           finalAIMap[code] = Object.values(newAIMap[code])
-            .filter(p => !["5608", "5610", "5609", "5770"].includes(p.plant))
+            .filter(p => !["5610", "5608", "5611", "5770"].includes(p.plant))
             .sort((a, b) => b.unrestricted - a.unrestricted);
         });
 
@@ -428,14 +420,14 @@
       }
 
       return workingReqs.map(req => {
-        const stockEntry = wbsoStockMap[req.code] || { "5608": {a:0,t:0}, "5610": {a:0,t:0}, "5609": {a:0,t:0}, "5770": {a:0,t:0} };
+        const stockEntry = wbsoStockMap[req.code] || { "5610": {a:0,t:0}, "5608": {a:0,t:0}, "5611": {a:0,t:0}, "5770": {a:0,t:0} };
         const effStock = (pCode) => {
           const s = stockEntry[pCode] || {a: 0, t: 0};
           return includeTransit ? (s.a + s.t) : s.a;
         };
 
         const targetAvail = effStock(req.plant);
-        const sisterCFAs = ["5608", "5610", "5609", "5770"].filter(p => p !== req.plant);
+        const sisterCFAs = ["5610", "5608", "5611", "5770"].filter(p => p !== req.plant);
         const sisterAvailTotal = sisterCFAs.reduce((acc, p) => acc + effStock(p), 0);
 
         const targetShortfall = Math.max(0, req.reqQty - targetAvail);
@@ -558,9 +550,9 @@
             <td class="py-2.5 px-3 font-mono font-bold text-slate-900">${r.code}${dupBadge}</td>
             <td class="py-2.5 px-3 text-slate-700">${r.grade}</td>
             <td class="py-2.5 px-3 text-right font-bold text-slate-900 bg-slate-50">${r.reqQty.toLocaleString()}</td>
-            <td class="py-2.5 px-3 text-center">${formatStockCell(r.stockEntry["5608"], r.plant === "5608")}</td>
             <td class="py-2.5 px-3 text-center">${formatStockCell(r.stockEntry["5610"], r.plant === "5610")}</td>
-            <td class="py-2.5 px-3 text-center">${formatStockCell(r.stockEntry["5609"], r.plant === "5609")}</td>
+            <td class="py-2.5 px-3 text-center">${formatStockCell(r.stockEntry["5608"], r.plant === "5608")}</td>
+            <td class="py-2.5 px-3 text-center">${formatStockCell(r.stockEntry["5611"], r.plant === "5611")}</td>
             <td class="py-2.5 px-3 text-center">${formatStockCell(r.stockEntry["5770"], r.plant === "5770")}</td>
             <td class="py-2.5 px-3 text-right font-bold ${r.targetShortfall > 0 ? 'text-rose-600' : 'text-emerald-600'}">
               ${r.targetShortfall > 0 ? r.targetShortfall.toLocaleString() : '0'}
@@ -578,7 +570,7 @@
       const rows = getPreparedRows();
       const headers = [
         "Requiring Plant", "Material Code", "Grade Name", "Total Required Qty",
-        "Mourigram (5608) Avail", "Rajbandh (5610) Avail", "Raninagar (5609) Avail", "CIP Kolkata (5770) Avail",
+        "Mourigram (5610) Avail", "Raninagar (5608) Avail", "Rajbandh (5611) Avail", "CIP Kolkata (5770) Avail",
         "Target CFA Shortfall", "Net External STO Deficit", "Fulfilment Status", "Selected All-India Supplying Plant"
       ];
       const csvLines = [headers.join(",")];
@@ -589,9 +581,9 @@
           `"${r.code}"`,
           `"${r.grade.replace(/"/g, '""')}"`,
           r.reqQty,
-          r.stockEntry["5608"]?.a || 0,
           r.stockEntry["5610"]?.a || 0,
-          r.stockEntry["5609"]?.a || 0,
+          r.stockEntry["5608"]?.a || 0,
+          r.stockEntry["5611"]?.a || 0,
           r.stockEntry["5770"]?.a || 0,
           r.targetShortfall,
           r.netExternalDeficit,
