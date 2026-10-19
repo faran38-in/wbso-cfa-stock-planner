@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SERVO WBSO | CFA Stock & All-India Sourcing Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #f1f5f9; }
+    .badge-surplus { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .badge-partial { background-color: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+    .badge-shortfall { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .table-container { max-height: 66vh; overflow-y: auto; }
+    thead th { position: sticky; top: 0; z-index: 20; background-color: #0f172a; color: #f8fafc; }
+  </style>
+</head>
+<body class="text-slate-800">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-slate-900 text-white shadow-lg border-b border-slate-700">
+    <div class="max-w-[1440px] mx-auto px-4 py-3.5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span class="bg-orange-500 text-white text-xs font-extrabold px-2.5 py-1 rounded tracking-wider uppercase">SERVO WBSO</span>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight">CFA Stock Arrangement &amp; All-India Plant Sourcing</h1>
+          <p class="text-[11px] text-slate-400">
+            Connected to Google Sheet: <code class="text-orange-300">SSR STOCK REQUIREMENT</code> (<code class="text-slate-300">Req at CFA Master</code> + <code class="text-slate-300">Stock</code>)
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button onclick="syncLiveGoogleSheet()" id="syncBtn" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3.5 py-2 rounded shadow flex items-center gap-1.5 transition">
+          <span>🔄 Sync Live Google Sheet</span>
+        </button>
+        <button onclick="exportAllocationCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2 rounded shadow flex items-center gap-1.5 transition">
+          <span>⬇ Export STO / Sourcing Plan (CSV)</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1440px] mx-auto px-4 py-4 space-y-4">
+
+    <!-- Data Sources & Controls -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <!-- Box 1: Live G-Sheet / File Override -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between mb-1.5">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600">1. WBSO Master &amp; CFA Stock</h2>
+          <span id="wbStatus" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">Ready to Sync / Upload</span>
+        </div>
+        <p class="text-[11px] text-slate-500 mb-2.5">
+          Click <strong>Sync Live Google Sheet</strong> (if link sharing is set to <em>Anyone with the link can view</em>) or upload your <code class="font-mono">.xlsx</code> file directly:
+        </p>
+        <input type="file" id="ssrFileInput" accept=".xlsx,.xls,.csv" class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-white hover:file:bg-slate-700 cursor-pointer" />
+      </div>
+
+      <!-- Box 2: All-India Stock Upload -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border-2 border-orange-200 bg-orange-50/20">
+        <div class="flex items-center justify-between mb-1.5">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-orange-800">2. Upload All-India Plant Stock (MB52)</h2>
+          <span id="aiStatus" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">Demo Plants Active</span>
+        </div>
+        <p class="text-[11px] text-slate-600 mb-2.5">
+          Upload your All-India SAP MB52 dump (<code class="font-mono">Material, Plant, Name 1, Unrestricted, Transit</code>) to match external supplying plants:
+        </p>
+        <input type="file" id="allIndiaFileInput" accept=".xlsx,.xls,.csv" class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-500 cursor-pointer" />
+      </div>
+
+      <!-- Box 3: Planning Rules -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+        <div>
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">3. Allocation Logic &amp; Options</h2>
+          <label class="flex items-center gap-2 text-xs text-slate-700 font-medium cursor-pointer mb-1.5">
+            <input type="checkbox" id="includeTransitToggle" onchange="renderDashboard()" class="rounded border-slate-300 text-slate-900" />
+            <span>Include <strong>Transit &amp; Transfer</strong> stock in CFA availability</span>
+          </label>
+          <label class="flex items-center gap-2 text-xs text-slate-700 font-medium cursor-pointer">
+            <input type="checkbox" id="consolidateDuplicatesToggle" checked onchange="renderDashboard()" class="rounded border-slate-300 text-slate-900" />
+            <span>Consolidate duplicate Material Codes per Plant in <code class="font-mono">Req at CFA Master</code></span>
+          </label>
+        </div>
+        <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100 flex flex-wrap gap-x-3 gap-y-1">
+          <span><strong>5608:</strong> Mourigram</span>
+          <span><strong>5610:</strong> Rajbandh</span>
+          <span><strong>5609:</strong> Raninagar</span>
+          <span><strong>5770:</strong> CIP Kolkata</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- KPI Strip -->
+    <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200">
+        <div class="text-[11px] font-semibold uppercase text-slate-400">Total Req Lines</div>
+        <div id="kpiTotalLines" class="text-2xl font-bold text-slate-800 mt-0.5">0</div>
+        <div id="kpiUniqueCodes" class="text-[11px] text-slate-500">0 unique codes</div>
+      </div>
+      <div class="bg-white p-3.5 rounded-xl shadow-sm border border-slate-200">
+        <div class="text-[11px] font-semibold uppercase text-slate-400">Total Required Qty</div>
+        <div id="kpiTotalReq" class="text-2xl font-bold text-slate-800 mt-0.5">0</div>
+        <div class="text-[11px] text-slate-500">Packs / Units</div>
+      </div>
+      <div class="bg-white p-3.5 rounded-xl shadow-sm border border-emerald-200 bg-emerald-50/40">
+        <div class="text-[11px] font-semibold uppercase text-emerald-700">Ready at Target CFA</div>
+        <div id="kpiDirectReady" class="text-2xl font-bold text-emerald-700 mt-0.5">0</div>
+        <div id="kpiDirectReadySub" class="text-[11px] text-emerald-600">0 Qty available locally</div>
+      </div>
+      <div class="bg-white p-3.5 rounded-xl shadow-sm border border-amber-200 bg-amber-50/40">
+        <div class="text-[11px] font-semibold uppercase text-amber-800">WBSO Sister CFA / CIP</div>
+        <div id="kpiSisterSupport" class="text-2xl font-bold text-amber-700 mt-0.5">0</div>
+        <div id="kpiSisterSupportSub" class="text-[11px] text-amber-700">Arrangeable internally</div>
+      </div>
+      <div class="bg-white p-3.5 rounded-xl shadow-sm border border-rose-200 bg-rose-50/40">
+        <div class="text-[11px] font-semibold uppercase text-rose-700">Net External Deficit</div>
+        <div id="kpiNetDeficit" class="text-2xl font-bold text-rose-700 mt-0.5">0</div>
+        <div id="kpiNetDeficitSub" class="text-[11px] text-rose-600">0 SKUs require All-India STO</div>
+      </div>
+      <div class="bg-white p-3.5 rounded-xl shadow-sm border border-indigo-200 bg-indigo-50/40">
+        <div class="text-[11px] font-semibold uppercase text-indigo-700">All-India Plant Match</div>
+        <div id="kpiAllIndiaFound" class="text-2xl font-bold text-indigo-700 mt-0.5">0</div>
+        <div id="kpiAllIndiaFoundSub" class="text-[11px] text-indigo-600">Shortfall SKUs located</div>
+      </div>
+    </section>
+
+    <!-- Search & Filter Toolbar -->
+    <section class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2.5">
+        <input type="text" id="searchInput" oninput="renderDashboard()" placeholder="🔍 Search Code, Grade, or Supplying Plant..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-800 w-64" />
+
+        <select id="plantFilter" onchange="renderDashboard()" class="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white font-medium">
+          <option value="ALL">All Requiring CFAs (5608 / 5610 / 5609)</option>
+          <option value="5608">Plant 5608 — CFA Mourigram</option>
+          <option value="5610">Plant 5610 — CFA Rajbandh</option>
+          <option value="5609">Plant 5609 — CFA Raninagar</option>
+        </select>
+
+        <select id="statusFilter" onchange="renderDashboard()" class="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white font-medium">
+          <option value="ALL">All Statuses</option>
+          <option value="SHORTFALL_TARGET">Any Shortfall at Requiring CFA</option>
+          <option value="NEED_EXTERNAL">Needs All-India External STO</option>
+          <option value="WBSO_TRANSFER">Arrangeable from Sister CFA / CIP Kolkata</option>
+          <option value="READY">100% Ready at Requiring CFA</option>
+        </select>
+      </div>
+
+      <div class="text-xs text-slate-500">
+        Showing <span id="rowCountText" class="font-bold text-slate-900">0</span> requirement lines
+      </div>
+    </section>
+
+    <!-- Data Table -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div class="table-container">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="border-b border-slate-700 text-[11px] uppercase tracking-wider">
+              <th class="py-3 px-3">Requiring CFA</th>
+              <th class="py-3 px-3">Code</th>
+              <th class="py-3 px-3">Grade Name</th>
+              <th class="py-3 px-3 text-right bg-slate-800">Req Qty</th>
+              <th class="py-3 px-3 text-center">Mourigram<br><span class="text-[9px] font-normal text-slate-300">(5608)</span></th>
+              <th class="py-3 px-3 text-center">Rajbandh<br><span class="text-[9px] font-normal text-slate-300">(5610)</span></th>
+              <th class="py-3 px-3 text-center">Raninagar<br><span class="text-[9px] font-normal text-slate-300">(5609)</span></th>
+              <th class="py-3 px-3 text-center">CIP Kolkata<br><span class="text-[9px] font-normal text-slate-300">(5770)</span></th>
+              <th class="py-3 px-3 text-right">Target Shortfall</th>
+              <th class="py-3 px-3">Fulfilment Status</th>
+              <th class="py-3 px-3 bg-indigo-950 text-indigo-100">All-India Sourcing Plant (Select to Allocate)</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-200"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const SHEET_ID = "1KsqNGhafYQUjwMpXAuaVgYIyVaQ7P2kWtv1R6VyFkew";
+
+    // Pre-loaded fallback data from your sheet
+    let rawReqData = [
+      { plant: "5608", code: "2502265", grade: "SERVO GEAR HP 90- 20 L", reqQty: 125 },
+      { plant: "5608", code: "2503234", grade: "SERVO GEAR HP 140- 4x5L - HDPE", reqQty: 140 },
+      { plant: "5608", code: "2503265", grade: "SERVO GEAR HP 140- 20 L", reqQty: 140 },
+      { plant: "5608", code: "2941184", grade: "SERVO OBM 2T OIL- 20 X 1 L", reqQty: 200 },
+      { plant: "5608", code: "3614265", grade: "SERVOMESH SP 320- 20 L", reqQty: 150 },
+      { plant: "5608", code: "7403265", grade: "SERVOELECTRA- 20 L", reqQty: 200 },
+      { plant: "5608", code: "7420401", grade: "HYUNDAI SERVO PETROL ENGINE OIL SN PLUS- 210 L BRL", reqQty: 10 },
+      { plant: "5608", code: "228740152", grade: "SERVO MOTOCARE 4T- 20 X 0.9L", reqQty: 1025 },
+      { plant: "5608", code: "228740184", grade: "SERVO MOTOCARE 4T- 20 X 1 L", reqQty: 550 },
+      { plant: "5608", code: "237250213", grade: "SERVO KISANPOWER SPSO- 4x3.5L HDPE", reqQty: 600 },
+      { plant: "5608", code: "273640184", grade: "SERVO FLEET 15W-40- 20 X 1 L", reqQty: 450 },
+      { plant: "5608", code: "429000174", grade: "SERVO ZOOM 2T SUPREME- 40X1/2L", reqQty: 600 },
+      { plant: "5610", code: "2502234", grade: "SERVO GEAR HP 90 - 4x5L - HDPE", reqQty: 30 },
+      { plant: "5610", code: "2502234", grade: "SERVO GEAR HP 90- 4x5L - HDPE", reqQty: 60 },
+      { plant: "5610", code: "2503234", grade: "SERVO GEAR HP 140- 4x5L - HDPE", reqQty: 27 },
+      { plant: "5610", code: "2503265", grade: "SERVO GEAR HP 140- 20 L", reqQty: 20 },
+      { plant: "5610", code: "3614265", grade: "SERVOMESH SP 320 - 20l BUC", reqQty: 40 },
+      { plant: "5610", code: "3614265", grade: "SERVOMESH SP 320- 20 L", reqQty: 60 },
+      { plant: "5610", code: "3617265", grade: "SERVOMESH SP 220- 20 L", reqQty: 50 },
+      { plant: "5610", code: "7079401", grade: "ECSTAR PETROL 0W-16 FE- 210 L BRL", reqQty: 20 },
+      { plant: "5610", code: "7209213", grade: "HY SERVO SYNTH 0W-30 SP/C3-4 X 3.5 L", reqQty: 30 },
+      { plant: "5610", code: "7209213", grade: "HYUNDAI SERVO SYNTH 0W-30 API SP/ ACEA C3- 4x3.5L HDPE", reqQty: 150 },
+      { plant: "5610", code: "7420213", grade: "HYUNDAI SERVO PETROL ENGINE OIL SN PLUS- 4x3.5L HDPE", reqQty: 200 },
+      { plant: "5610", code: "7420401", grade: "HY SERVO PETROL EO SN PLUS-210 L", reqQty: 5 },
+      { plant: "5610", code: "7420401", grade: "HYUNDAI SERVO PETROL ENGINE OIL SN PLUS- 210 L BRL", reqQty: 25 }
+    ];
+
+    let wbsoStockMap = {
+      "2502265":   { "5770": {a: 354, t: 189}, "5608": {a: 0, t: 0},   "5610": {a: 0, t: 0},   "5609": {a: 0, t: 0} },
+      "2503234":   { "5770": {a: 0, t: 0},     "5608": {a: 21, t: 0},  "5610": {a: 5, t: 0},   "5609": {a: 0, t: 0} },
+      "2503265":   { "5770": {a: 0, t: 80},    "5608": {a: 37, t: 0},  "5610": {a: 59, t: 0},  "5609": {a: 0, t: 0} },
+      "7420401":   { "5770": {a: 0, t: 35},    "5608": {a: 0, t: 0},   "5610": {a: 1, t: 0},   "5609": {a: 4, t: 0} },
+      "237250213": { "5770": {a: 154, t: 1315},"5608": {a: 437, t: 0}, "5610": {a: 0, t: 0},   "5609": {a: 0, t: 0} },
+      "273640184": { "5770": {a: 32, t: 776},  "5608": {a: 2, t: 100}, "5610": {a: 0, t: 0},   "5609": {a: 0, t: 0} },
+      "2502234":   { "5770": {a: 1, t: 0},     "5608": {a: 661, t: 0}, "5610": {a: 28, t: 0},  "5609": {a: 11, t: 0} },
+      "3617265":   { "5770": {a: 302, t: 0},   "5608": {a: 3, t: 0},   "5610": {a: 25, t: 0},  "5609": {a: 122, t: 0} },
+      "7079401":   { "5770": {a: 53, t: 0},    "5608": {a: 0, t: 0},   "5610": {a: 0, t: 0},   "5609": {a: 0, t: 0} }
+    };
+
+    let allIndiaStockMap = {
+      "2503234":   [{ plant: "1205", name: "Haldia LBP", unrestricted: 420, transit: 0 }, { plant: "4101", name: "Taloja LBP", unrestricted: 190, transit: 40 }],
+      "2503265":   [{ plant: "1205", name: "Haldia LBP", unrestricted: 310, transit: 50 }],
+      "3614265":   [{ plant: "1205", name: "Haldia LBP", unrestricted: 280, transit: 0 }, { plant: "2104", name: "Asaoti LBP", unrestricted: 150, transit: 0 }],
+      "228740152": [{ plant: "1205", name: "Haldia LBP", unrestricted: 1450, transit: 200 }],
+      "228740184": [{ plant: "1205", name: "Haldia LBP", unrestricted: 800, transit: 0 }],
+      "273640184": [{ plant: "1205", name: "Haldia LBP", unrestricted: 640, transit: 100 }],
+      "429000174": [{ plant: "3102", name: "Chennai LBP", unrestricted: 900, transit: 0 }, { plant: "1205", name: "Haldia LBP", unrestricted: 350, transit: 0 }],
+      "7209213":   [{ plant: "4101", name: "Taloja LBP", unrestricted: 320, transit: 0 }],
+      "7420213":   [{ plant: "1205", name: "Haldia LBP", unrestricted: 410, transit: 0 }]
+    };
+
+    // Stores user-selected supplying plant per row key
+    let selectedPlantChoice = {};
+
+    const PLANT_LABELS = {
+      "5608": "CFA Mourigram (5608)",
+      "5610": "CFA Rajbandh (5610)",
+      "5609": "CFA Raninagar (5609)",
+      "5770": "CIP Kolkata (5770)"
+    };
+
+    function cleanCode(val) {
+      if (val === undefined || val === null) return "";
+      return String(val).trim().replace(/\.0$/, "");
+    }
+
+    function parseNum(val) {
+      if (val === undefined || val === null || val === "") return 0;
+      if (typeof val === "number") return val;
+      const num = parseFloat(String(val).replace(/,/g, "").trim());
+      return isNaN(num) ? 0 : num;
+    }
+
+    function resolveWBSOPlant(plantVal, nameVal) {
+      const p = cleanCode(plantVal);
+      const n = String(nameVal || "").toUpperCase();
+      if (p === "5608" || n.includes("MOURIGRAM")) return "5608";
+      if (p === "5610" || n.includes("RAJBANDH")) return "5610";
+      if (p === "5609" || n.includes("RANINAGAR")) return "5609";
+      if (p === "5770" || n.includes("CIP KOLKATA") || n.includes("KOLKATA")) return "5770";
+      return p || "OTHER";
+    }
+
+    // Live Sync directly from Google Sheet CSV endpoints
+    async function syncLiveGoogleSheet() {
+      const statusEl = document.getElementById("wbStatus");
+      statusEl.textContent = "Syncing from Google Sheet...";
+      statusEl.className = "text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300";
+
+      try {
+        const reqUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("Req at CFA Master")}`;
+        const stockUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent("Stock")}`;
+
+        const [reqRes, stockRes] = await Promise.all([fetch(reqUrl), fetch(stockUrl)]);
+        if (!reqRes.ok || !stockRes.ok) throw new Error("Ensure sheet sharing is 'Anyone with link can view'");
+
+        const reqCsv = await reqRes.text();
+        const stockCsv = await stockRes.text();
+
+        const reqWb = XLSX.read(reqCsv, { type: "string" });
+        const reqRows = XLSX.utils.sheet_to_json(reqWb.Sheets[reqWb.SheetNames[0]], { defval: "" });
+        const parsedReqs = [];
+        reqRows.forEach(r => {
+          const plant = cleanCode(r["Plant"] || r["PLANT"]);
+          const code = cleanCode(r["Code"] || r["CODE"]);
+          const grade = String(r["Grade Name"] || r["Grade"] || "").trim();
+          const qty = parseNum(r["Total Required Qty"] || r["Required Qty"]);
+          if (code && qty > 0) parsedReqs.push({ plant: plant || "5608", code, grade, reqQty: qty });
+        });
+
+        const stockWb = XLSX.read(stockCsv, { type: "string" });
+        const stockRows = XLSX.utils.sheet_to_json(stockWb.Sheets[stockWb.SheetNames[0]], { defval: "" });
+        const newStockMap = {};
+        stockRows.forEach(r => {
+          const code = cleanCode(r["Material"] || r["Code"]);
+          if (!code) return;
+          const pKey = resolveWBSOPlant(r["Plant"], r["Name 1"]);
+          const unres = parseNum(r["Unrestricted"]);
+          const trans = parseNum(r["Transit and Transfer"]);
+          if (!newStockMap[code]) newStockMap[code] = { "5608": {a:0,t:0}, "5610": {a:0,t:0}, "5609": {a:0,t:0}, "5770": {a:0,t:0} };
+          if (!newStockMap[code][pKey]) newStockMap[code][pKey] = { a: 0, t: 0 };
+          newStockMap[code][pKey].a += unres;
+          newStockMap[code][pKey].t += trans;
+        });
+
+        if (parsedReqs.length > 0) rawReqData = parsedReqs;
+        if (Object.keys(newStockMap).length > 0) wbsoStockMap = newStockMap;
+
+        statusEl.textContent = `Live Synced (${rawReqData.length} reqs)`;
+        statusEl.className = "text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300";
+        renderDashboard();
+      } catch (err) {
+        statusEl.textContent = "Upload .xlsx (Sheet is private)";
+        statusEl.className = "text-[11px] font-semibold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-300";
+        alert("Live Sync note: Your Google Sheet is currently restricted. Either change Google Sheet sharing to 'Anyone with the link can view' OR upload the downloaded .xlsx file using Box 1.");
+      }
+    }
+
+    // Manual Upload 1: SSR Workbook
+    document.getElementById("ssrFileInput").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const workbook = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
+        const reqSheetName = workbook.SheetNames.find(n => n.toLowerCase().includes("req at cfa")) || workbook.SheetNames[0];
+        const reqRows = XLSX.utils.sheet_to_json(workbook.Sheets[reqSheetName], { defval: "" });
+        const parsedReqs = [];
+        reqRows.forEach(r => {
+          const plant = cleanCode(r["Plant"] || r["PLANT"] || r["CFA"]);
+          const code = cleanCode(r["Code"] || r["CODE"] || r["Material"]);
+          const grade = String(r["Grade Name"] || r["Grade"] || r["Material Description"] || "").trim();
+          const qty = parseNum(r["Total Required Qty"] || r["Required Qty"] || r["Qty in No"] || r["Qty"]);
+          if (code && qty > 0) parsedReqs.push({ plant: plant || "5608", code, grade, reqQty: qty });
+        });
+        if (parsedReqs.length > 0) rawReqData = parsedReqs;
+
+        const stockSheetName = workbook.SheetNames.find(n => n.toLowerCase().trim() === "stock");
+        if (stockSheetName) {
+          const stockRows = XLSX.utils.sheet_to_json(workbook.Sheets[stockSheetName], { defval: "" });
+          const newStockMap = {};
+          stockRows.forEach(r => {
+            const code = cleanCode(r["Material"] || r["Code"]);
+            if (!code) return;
+            const plantKey = resolveWBSOPlant(r["Plant"], r["Name 1"]);
+            const unres = parseNum(r["Unrestricted"]);
+            const trans = parseNum(r["Transit and Transfer"]);
+            if (!newStockMap[code]) newStockMap[code] = { "5608": {a:0,t:0}, "5610": {a:0,t:0}, "5609": {a:0,t:0}, "5770": {a:0,t:0} };
+            if (!newStockMap[code][plantKey]) newStockMap[code][plantKey] = { a: 0, t: 0 };
+            newStockMap[code][plantKey].a += unres;
+            newStockMap[code][plantKey].t += trans;
+          });
+          if (Object.keys(newStockMap).length > 0) wbsoStockMap = newStockMap;
+        }
+
+        document.getElementById("wbStatus").textContent = `Loaded (${rawReqData.length} rows)`;
+        document.getElementById("wbStatus").className = "text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300";
+        renderDashboard();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    // Manual Upload 2: All India Stock MB52
+    document.getElementById("allIndiaFileInput").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const workbook = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+        const newAIMap = {};
+        let rowCount = 0;
+
+        rows.forEach(r => {
+          const code = cleanCode(r["Material"] || r["Code"] || r["MATERIAL"] || r["Material Code"]);
+          const plant = cleanCode(r["Plant"] || r["PLANT"] || r["Supplying Plant"]);
+          const name = String(r["Name 1"] || r["Plant Name"] || r["Storage Location"] || "").trim();
+          const unres = parseNum(r["Unrestricted"] || r["UNRESTRICTED"] || r["Available Qty"] || r["Stock"]);
+          const trans = parseNum(r["Transit and Transfer"] || r["Transit"] || 0);
+
+          if (!code || (unres <= 0 && trans <= 0)) return;
+          if (!newAIMap[code]) newAIMap[code] = {};
+          const pKey = plant || name || "UNKNOWN";
+          if (!newAIMap[code][pKey]) {
+            newAIMap[code][pKey] = { plant: plant || "-", name: name || `Plant ${plant}`, unrestricted: 0, transit: 0 };
+          }
+          newAIMap[code][pKey].unrestricted += unres;
+          newAIMap[code][pKey].transit += trans;
+          rowCount++;
+        });
+
+        const finalAIMap = {};
+        Object.keys(newAIMap).forEach(code => {
+          finalAIMap[code] = Object.values(newAIMap[code])
+            .filter(p => !["5608", "5610", "5609", "5770"].includes(p.plant))
+            .sort((a, b) => b.unrestricted - a.unrestricted);
+        });
+
+        allIndiaStockMap = finalAIMap;
+        document.getElementById("aiStatus").textContent = `Loaded (${rowCount} rows)`;
+        document.getElementById("aiStatus").className = "text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300";
+        renderDashboard();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    function getPreparedRows() {
+      const includeTransit = document.getElementById("includeTransitToggle").checked;
+      const consolidate = document.getElementById("consolidateDuplicatesToggle").checked;
+
+      let workingReqs = [];
+      if (consolidate) {
+        const map = {};
+        rawReqData.forEach(item => {
+          const key = `${item.plant}_${item.code}`;
+          if (!map[key]) map[key] = { ...item, rowKey: key, duplicateCount: 1 };
+          else {
+            map[key].reqQty += item.reqQty;
+            map[key].duplicateCount += 1;
+          }
+        });
+        workingReqs = Object.values(map);
+      } else {
+        workingReqs = rawReqData.map((r, i) => ({ ...r, rowKey: `${r.plant}_${r.code}_${i}`, duplicateCount: 1 }));
+      }
+
+      return workingReqs.map(req => {
+        const stockEntry = wbsoStockMap[req.code] || { "5608": {a:0,t:0}, "5610": {a:0,t:0}, "5609": {a:0,t:0}, "5770": {a:0,t:0} };
+        const effStock = (pCode) => {
+          const s = stockEntry[pCode] || {a: 0, t: 0};
+          return includeTransit ? (s.a + s.t) : s.a;
+        };
+
+        const targetAvail = effStock(req.plant);
+        const sisterCFAs = ["5608", "5610", "5609", "5770"].filter(p => p !== req.plant);
+        const sisterAvailTotal = sisterCFAs.reduce((acc, p) => acc + effStock(p), 0);
+
+        const targetShortfall = Math.max(0, req.reqQty - targetAvail);
+        const netExternalDeficit = Math.max(0, targetShortfall - sisterAvailTotal);
+
+        let sisterSuggestions = [];
+        if (targetShortfall > 0 && sisterAvailTotal > 0) {
+          sisterCFAs.forEach(p => {
+            const avail = effStock(p);
+            if (avail > 0) sisterSuggestions.push(`${PLANT_LABELS[p].split(" ")[1]}: ${avail}`);
+          });
+        }
+
+        let statusKey = "READY";
+        let statusLabel = "Ready at Target CFA";
+        let badgeClass = "badge-surplus";
+
+        if (targetShortfall > 0 && netExternalDeficit === 0) {
+          statusKey = "WBSO_TRANSFER";
+          statusLabel = `WBSO Transfer (${sisterSuggestions.join(", ")})`;
+          badgeClass = "badge-partial";
+        } else if (netExternalDeficit > 0) {
+          statusKey = "NEED_EXTERNAL";
+          statusLabel = `Need STO: ${netExternalDeficit} Qty`;
+          badgeClass = "badge-shortfall";
+        }
+
+        const aiPlants = allIndiaStockMap[req.code] || [];
+        return {
+          ...req,
+          stockEntry,
+          targetAvail,
+          sisterAvailTotal,
+          targetShortfall,
+          netExternalDeficit,
+          statusKey,
+          statusLabel,
+          badgeClass,
+          aiPlants
+        };
+      });
+    }
+
+    function formatStockCell(s, isTarget) {
+      if (!s || (s.a === 0 && s.t === 0)) return `<span class="text-slate-300">A-0; T-0</span>`;
+      const cls = isTarget ? "font-bold text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-300" : "text-slate-700";
+      return `<span class="${cls}">A-${s.a}<span class="text-slate-400 font-normal">; T-${s.t}</span></span>`;
+    }
+
+    function selectSupplyPlant(rowKey, val) {
+      selectedPlantChoice[rowKey] = val;
+    }
+
+    function renderDashboard() {
+      const rows = getPreparedRows();
+      const search = document.getElementById("searchInput").value.toLowerCase().trim();
+      const plantFilter = document.getElementById("plantFilter").value;
+      const statusFilter = document.getElementById("statusFilter").value;
+
+      const plantScoped = rows.filter(r => plantFilter === "ALL" || r.plant === plantFilter);
+      const uniqueCodes = new Set(plantScoped.map(r => r.code)).size;
+      const totalReq = plantScoped.reduce((s, r) => s + r.reqQty, 0);
+      const readyRows = plantScoped.filter(r => r.statusKey === "READY");
+      const wbsoRows = plantScoped.filter(r => r.statusKey === "WBSO_TRANSFER");
+      const deficitRows = plantScoped.filter(r => r.statusKey === "NEED_EXTERNAL");
+      const totalDeficitQty = deficitRows.reduce((s, r) => s + r.netExternalDeficit, 0);
+      const aiMatchedRows = deficitRows.filter(r => r.aiPlants.length > 0);
+
+      document.getElementById("kpiTotalLines").textContent = plantScoped.length.toLocaleString();
+      document.getElementById("kpiUniqueCodes").textContent = `${uniqueCodes} unique codes`;
+      document.getElementById("kpiTotalReq").textContent = totalReq.toLocaleString();
+      document.getElementById("kpiDirectReady").textContent = readyRows.length.toLocaleString();
+      document.getElementById("kpiDirectReadySub").textContent = `${readyRows.reduce((s,r)=>s+r.reqQty,0).toLocaleString()} Qty ready`;
+      document.getElementById("kpiSisterSupport").textContent = wbsoRows.length.toLocaleString();
+      document.getElementById("kpiNetDeficit").textContent = totalDeficitQty.toLocaleString();
+      document.getElementById("kpiNetDeficitSub").textContent = `${deficitRows.length} SKUs need external STO`;
+      document.getElementById("kpiAllIndiaFound").textContent = aiMatchedRows.length.toLocaleString();
+      document.getElementById("kpiAllIndiaFoundSub").textContent = `of ${deficitRows.length} deficit SKUs matched`;
+
+      const filtered = plantScoped.filter(r => {
+        const aiText = r.aiPlants.map(p => `${p.plant} ${p.name}`).join(" ").toLowerCase();
+        if (search && !r.code.toLowerCase().includes(search) && !r.grade.toLowerCase().includes(search) && !aiText.includes(search)) {
+          return false;
+        }
+        if (statusFilter === "SHORTFALL_TARGET" && r.targetShortfall === 0) return false;
+        if (statusFilter === "NEED_EXTERNAL" && r.statusKey !== "NEED_EXTERNAL") return false;
+        if (statusFilter === "WBSO_TRANSFER" && r.statusKey !== "WBSO_TRANSFER") return false;
+        if (statusFilter === "READY" && r.statusKey !== "READY") return false;
+        return true;
+      });
+
+      document.getElementById("rowCountText").textContent = filtered.length;
+
+      document.getElementById("tableBody").innerHTML = filtered.map(r => {
+        const dupBadge = r.duplicateCount > 1
+          ? `<span class="ml-1 text-[10px] bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-semibold">${r.duplicateCount}x merged</span>`
+          : "";
+
+        let aiHtml = `<span class="text-slate-400 italic">No external stock in MB52</span>`;
+        if (r.aiPlants.length > 0) {
+          const currentSelected = selectedPlantChoice[r.rowKey] || `${r.aiPlants[0].plant} - ${r.aiPlants[0].name} (A-${r.aiPlants[0].unrestricted})`;
+          selectedPlantChoice[r.rowKey] = currentSelected;
+          const optionsHtml = r.aiPlants.map(p => {
+            const label = `${p.plant} - ${p.name} (A-${p.unrestricted}${p.transit ? `, T-${p.transit}` : ""})`;
+            const sel = label === currentSelected ? "selected" : "";
+            return `<option value="${label}" ${sel}>${label}</option>`;
+          }).join("");
+          aiHtml = `
+            <select onchange="selectSupplyPlant('${r.rowKey}', this.value)" class="text-xs border border-indigo-200 bg-indigo-50/60 text-indigo-950 font-medium rounded px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-indigo-600">
+              ${optionsHtml}
+            </select>
+          `;
+        } else if (r.statusKey === "READY") {
+          aiHtml = `<span class="text-emerald-600 text-[11px] font-medium">✔ Available at Target CFA</span>`;
+        }
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-2.5 px-3 font-semibold text-slate-700">${PLANT_LABELS[r.plant] || r.plant}</td>
+            <td class="py-2.5 px-3 font-mono font-bold text-slate-900">${r.code}${dupBadge}</td>
+            <td class="py-2.5 px-3 text-slate-700">${r.grade}</td>
+            <td class="py-2.5 px-3 text-right font-bold text-slate-900 bg-slate-50">${r.reqQty.toLocaleString()}</td>
+            <td class="py-2.5 px-3 text-center">${formatStockCell(r.stockEntry["5608"], r.plant === "5608")}</td>
+            <td class="py-2.5 px-3 text-center">${formatStockCell(r.stockEntry["5610"], r.plant === "5610")}</td>
+            <td class="py-2.5 px-3 text-center">${formatStockCell(r.stockEntry["5609"], r.plant === "5609")}</td>
+            <td class="py-2.5 px-3 text-center">${formatStockCell(r.stockEntry["5770"], r.plant === "5770")}</td>
+            <td class="py-2.5 px-3 text-right font-bold ${r.targetShortfall > 0 ? 'text-rose-600' : 'text-emerald-600'}">
+              ${r.targetShortfall > 0 ? r.targetShortfall.toLocaleString() : '0'}
+            </td>
+            <td class="py-2.5 px-3">
+              <span class="px-2 py-0.5 rounded text-[11px] font-semibold ${r.badgeClass}">${r.statusLabel}</span>
+            </td>
+            <td class="py-2.5 px-3">${aiHtml}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function exportAllocationCSV() {
+      const rows = getPreparedRows();
+      const headers = [
+        "Requiring Plant", "Material Code", "Grade Name", "Total Required Qty",
+        "Mourigram (5608) Avail", "Rajbandh (5610) Avail", "Raninagar (5609) Avail", "CIP Kolkata (5770) Avail",
+        "Target CFA Shortfall", "Net External STO Deficit", "Fulfilment Status", "Selected All-India Supplying Plant"
+      ];
+      const csvLines = [headers.join(",")];
+      rows.forEach(r => {
+        const chosenPlant = selectedPlantChoice[r.rowKey] || (r.aiPlants[0] ? `${r.aiPlants[0].plant} - ${r.aiPlants[0].name} (A-${r.aiPlants[0].unrestricted})` : "");
+        csvLines.push([
+          `"${PLANT_LABELS[r.plant] || r.plant}"`,
+          `"${r.code}"`,
+          `"${r.grade.replace(/"/g, '""')}"`,
+          r.reqQty,
+          r.stockEntry["5608"]?.a || 0,
+          r.stockEntry["5610"]?.a || 0,
+          r.stockEntry["5609"]?.a || 0,
+          r.stockEntry["5770"]?.a || 0,
+          r.targetShortfall,
+          r.netExternalDeficit,
+          `"${r.statusLabel}"`,
+          `"${chosenPlant}"`
+        ].join(","));
+      });
+
+      const blob = new Blob([csvLines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `SERVO_WBSO_CFA_Sourcing_Plan_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    renderDashboard();
+  </script>
+</body>
+</html>
