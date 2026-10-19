@@ -37,7 +37,7 @@
 
   <main class="max-w-[1440px] mx-auto px-3 py-3 space-y-3">
 
-    <!-- Compact Collapsible / Inline Control Bar -->
+    <!-- Compact Control Bar -->
     <section class="bg-white p-3 rounded-lg shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-3">
       <!-- 1. SSR Sheet Upload -->
       <div class="flex flex-col justify-between border-b md:border-b-0 md:border-r border-slate-100 pb-2 md:pb-0 md:pr-3">
@@ -325,7 +325,7 @@
       reader.readAsArrayBuffer(file);
     });
 
-    // Robust MB52 All-India Stock Parser (handles any column header case/naming)
+    // Ingests ALL plants from MB52 Excel dump
     document.getElementById("allIndiaFileInput").addEventListener("change", function(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -338,7 +338,6 @@
         let rowCount = 0;
 
         rows.forEach(r => {
-          // Find keys case-insensitively across columns
           const keys = Object.keys(r);
           let codeVal = "", plantVal = "", nameVal = "", unresVal = 0, transVal = 0;
 
@@ -370,8 +369,8 @@
 
         const finalAIMap = {};
         Object.keys(newAIMap).forEach(code => {
+          // Allow all supplying plants found in MB52 dump to appear in dropdowns
           finalAIMap[code] = Object.values(newAIMap[code])
-            .filter(p => !["5610", "5608", "5611", "5770"].includes(p.plant))
             .sort((a, b) => b.unrestricted - a.unrestricted);
         });
 
